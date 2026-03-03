@@ -9,7 +9,7 @@ const customerSchema = new mongoose.Schema(
     },
     phoneNumber: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: false,
       trim: true,
     },
     pantsHeight: {

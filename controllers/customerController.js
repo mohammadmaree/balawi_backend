@@ -98,8 +98,8 @@ const createCustomer = async (req, res) => {
     const { fullName, phoneNumber, pantsHeight, waistWidth, pantsLegWidth, type, notes } = req.body;
 
     // Validate required fields
-    if (!fullName || !phoneNumber) {
-      return response.badRequest(res, "Full name and phone number are required");
+    if (!fullName) {
+      return response.badRequest(res, "Full name is required");
     }
 
     // Check if customer with same name already exists

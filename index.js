@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const customerRoutes = require("./routes/customerRoutes");
+const workOrderRoutes = require("./routes/workOrderRoutes");
 const { errorHandler, notFoundHandler } = require("./middlewares/errorHandler");
 
 // Load environment variables (optional - you can create .env file)
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Routes
 app.use("/api/customers", customerRoutes);
+app.use("/api/work-orders", workOrderRoutes);
 
 // Health check route
 app.get("/", (req, res) => {
@@ -31,6 +33,7 @@ app.get("/", (req, res) => {
       version: "1.0.0",
       endpoints: {
         customers: "/api/customers",
+        workOrders: "/api/work-orders",
       },
     },
   });

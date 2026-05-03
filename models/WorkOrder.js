@@ -36,10 +36,10 @@ const workOrderSchema = new mongoose.Schema(
       type: String,
       required: [true, "Status is required"],
       enum: {
-        values: ["جاهز", "تم التسليم"],
-        message: "Status must be either 'جاهز' or 'تم التسليم'",
+        values: ["غير جاهز", "جاهز", "تم التسليم"],
+        message: "Status must be either 'غير جاهز', 'جاهز' or 'تم التسليم'",
       },
-      default: "جاهز",
+      default: "غير جاهز",
     },
     workDescription: {
       type: String,

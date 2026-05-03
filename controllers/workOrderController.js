@@ -100,6 +100,9 @@ const getStatistics = async (req, res) => {
     // Total work orders
     const total = await WorkOrder.countDocuments();
 
+    // Not ready orders (غير جاهز)
+    const notReady = await WorkOrder.countDocuments({ status: "غير جاهز" });
+
     // Ready orders (جاهز)
     const ready = await WorkOrder.countDocuments({ status: "جاهز" });
 
@@ -149,6 +152,7 @@ const getStatistics = async (req, res) => {
 
     return response.success(res, "Statistics retrieved successfully", {
       total,
+      notReady,
       ready,
       delivered,
       unpaid,
@@ -235,8 +239,8 @@ const createWorkOrder = async (req, res) => {
     }
 
     // Validate status
-    if (!["جاهز", "تم التسليم"].includes(status)) {
-      return response.badRequest(res, "Status must be 'جاهز' or 'تم التسليم'");
+    if (!["غير جاهز", "جاهز", "تم التسليم"].includes(status)) {
+      return response.badRequest(res, "Status must be 'غير جاهز', 'جاهز' or 'تم التسليم'");
     }
 
     const workOrder = await WorkOrder.create({

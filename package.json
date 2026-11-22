@@ -6,9 +6,15 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:payments": "node scripts/syncPayments.js"
   },
-  "keywords": ["express", "mongodb", "api", "customers"],
+  "keywords": [
+    "express",
+    "mongodb",
+    "api",
+    "customers"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

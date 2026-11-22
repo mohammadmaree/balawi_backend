@@ -33,6 +33,23 @@ npm start
 
 Server will run on `http://localhost:3000`
 
+### 🔐 Authentication
+
+All `/api/customers` and `/api/work-orders` routes require an API key header:
+
+```
+x-api-key: <API_KEY from .env>
+```
+
+The server will not start without `API_KEY` in `.env` (see `.env.example`).
+In Postman, set the collection variable `apiKey`.
+
+### Migration (one-off, after upgrading to 1.1.0)
+
+```bash
+npm run migrate:payments   # recompute isPaid for existing work orders
+```
+
 ---
 
 ## 📁 Project Structure

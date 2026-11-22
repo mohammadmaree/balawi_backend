@@ -1,5 +1,12 @@
 const WorkOrder = require("../models/WorkOrder");
 const response = require("../utils/response");
+const {
+  escapeRegex,
+  asString,
+  parsePagination,
+  buildPagination,
+  parseDate,
+} = require("../utils/query");
 
 /**
  * @desc    Get all work orders with filters, search, and pagination
@@ -16,23 +23,18 @@ const response = require("../utils/response");
  */
 const getAllWorkOrders = async (req, res) => {
   try {
-    const {
-      search,
-      status,
-      shelfNumber,
-      isPaid,
-      dateFrom,
-      dateTo,
-      page = 1,
-      limit = 10,
-    } = req.query;
+    const { page, limit } = req.query;
+    const search = asString(req.query.search);
+    const status = asString(req.query.status);
+    const shelfNumber = asString(req.query.shelfNumber);
+    const isPaid = asString(req.query.isPaid);
 
     // Build query object
-    let query = {};
+    const query = {};
 
-    // Search by customer name (case-insensitive partial match)
+    // Search by customer name (escaped, case-insensitive partial match)
     if (search) {
-      query.customerName = { $regex: search, $options: "i" };
+      query.customerName = { $regex: escapeRegex(search), $options: "i" };
     }
 
     // Filter by status
@@ -46,43 +48,36 @@ const getAllWorkOrders = async (req, res) => {
     }
 
     // Filter by payment status
-    if (isPaid !== undefined) {
+    if (isPaid === "true" || isPaid === "false") {
       query.isPaid = isPaid === "true";
     }
 
-    // Filter by date range
+    // Filter by date range (dateTo as YYYY-MM-DD includes the whole day)
+    const dateFrom = parseDate(req.query.dateFrom);
+    const dateTo = parseDate(req.query.dateTo, { endOfDay: true });
+    if (dateFrom === undefined || dateTo === undefined) {
+      return response.badRequest(res, "Invalid date format, use YYYY-MM-DD or ISO date");
+    }
     if (dateFrom || dateTo) {
       query.createdAt = {};
-      if (dateFrom) {
-        query.createdAt.$gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        query.createdAt.$lte = new Date(dateTo);
-      }
+      if (dateFrom) query.createdAt.$gte = dateFrom;
+      if (dateTo) query.createdAt.$lte = dateTo;
     }
 
     // Pagination
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
-    const skip = (pageNumber - 1) * limitNumber;
+    const { pageNumber, limitNumber, skip } = parsePagination(page, limit);
 
-    // Get total count for pagination info
-    const total = await WorkOrder.countDocuments(query);
-
-    // Get work orders
-    const workOrders = await WorkOrder.find(query)
-      .sort({ createdAt: -1 }) // Newest first
-      .skip(skip)
-      .limit(limitNumber);
+    const [total, workOrders] = await Promise.all([
+      WorkOrder.countDocuments(query),
+      WorkOrder.find(query)
+        .sort({ createdAt: -1 }) // Newest first
+        .skip(skip)
+        .limit(limitNumber),
+    ]);
 
     return response.success(res, "Work orders retrieved successfully", {
       workOrders,
-      pagination: {
-        currentPage: pageNumber,
-        totalPages: Math.ceil(total / limitNumber),
-        totalItems: total,
-        itemsPerPage: limitNumber,
-      },
+      pagination: buildPagination(pageNumber, limitNumber, total),
     });
   } catch (error) {
     console.error("Error in getAllWorkOrders:", error);
@@ -217,7 +212,7 @@ const createWorkOrder = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!customerName) {
+    if (typeof customerName !== "string" || !customerName.trim()) {
       return response.badRequest(res, "Customer name is required");
     }
 
@@ -243,13 +238,20 @@ const createWorkOrder = async (req, res) => {
       return response.badRequest(res, "Status must be 'غير جاهز', 'جاهز' or 'تم التسليم'");
     }
 
+    // isPaid is derived from amounts in the model.
+    // Backward compatibility: isPaid=true without paidAmount means fully paid.
+    const finalPrice = price || 0;
+    let finalPaid = paidAmount || 0;
+    if (isPaid === true && paidAmount === undefined) {
+      finalPaid = finalPrice;
+    }
+
     const workOrder = await WorkOrder.create({
       customerName,
       phoneNumber,
       shelfNumber,
-      price: price || 0,
-      paidAmount: paidAmount || 0,
-      isPaid: isPaid || false,
+      price: finalPrice,
+      paidAmount: finalPaid,
       status,
       workDescription: workDescription || "",
       notes: notes || "",
@@ -302,7 +304,14 @@ const updateWorkOrder = async (req, res) => {
     if (shelfNumber !== undefined) workOrder.shelfNumber = shelfNumber;
     if (price !== undefined) workOrder.price = price;
     if (paidAmount !== undefined) workOrder.paidAmount = paidAmount;
-    if (isPaid !== undefined) workOrder.isPaid = isPaid;
+
+    // isPaid is derived from amounts in the model.
+    // Backward compatibility when only isPaid is sent (toggle in the app):
+    if (paidAmount === undefined && isPaid === true) {
+      workOrder.paidAmount = workOrder.price;
+    } else if (paidAmount === undefined && isPaid === false && workOrder.isPaid) {
+      workOrder.paidAmount = 0;
+    }
     if (workDescription !== undefined) workOrder.workDescription = workDescription;
     if (notes !== undefined) workOrder.notes = notes;
 

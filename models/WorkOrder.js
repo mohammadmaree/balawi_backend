@@ -61,6 +61,21 @@ const workOrderSchema = new mongoose.Schema(
   }
 );
 
+// Keep payment fields consistent:
+// - paidAmount cannot exceed price
+// - isPaid is derived from amounts (fully paid and price > 0)
+workOrderSchema.pre("validate", function (next) {
+  const price = this.price || 0;
+  const paid = this.paidAmount || 0;
+
+  if (paid > price) {
+    this.invalidate("paidAmount", "المبلغ المدفوع لا يمكن أن يكون أكبر من السعر");
+  }
+
+  this.isPaid = price > 0 && paid >= price;
+  next();
+});
+
 // Index for better search performance
 workOrderSchema.index({ customerName: "text" });
 workOrderSchema.index({ status: 1 });

@@ -1,5 +1,6 @@
 const Customer = require("../models/Customer");
 const response = require("../utils/response");
+const { escapeRegex, asString, parsePagination, buildPagination } = require("../utils/query");
 
 /**
  * @desc    Get all customers with optional filters and search
@@ -12,47 +13,30 @@ const response = require("../utils/response");
  */
 const getAllCustomers = async (req, res) => {
   try {
-    const { search, letter, page = 1, limit = 10 } = req.query;
+    const { page, limit } = req.query;
+    const search = asString(req.query.search);
+    const letter = asString(req.query.letter);
 
-    // Build query object
-    let query = {};
-
-    // Search by name (case-insensitive partial match)
-    if (search) {
-      query.fullName = { $regex: search, $options: "i" };
-    }
-
-    // Filter by first letter (case-insensitive)
-    if (letter) {
-      query.fullName = {
-        ...query.fullName,
-        $regex: `^${letter}`,
-        $options: "i",
-      };
-    }
+    // Build name filter (user text is escaped so it is matched literally)
+    const namePatterns = [];
+    if (search) namePatterns.push({ fullName: { $regex: escapeRegex(search), $options: "i" } });
+    if (letter) namePatterns.push({ fullName: { $regex: `^${escapeRegex(letter)}`, $options: "i" } });
+    const query = namePatterns.length > 0 ? { $and: namePatterns } : {};
 
     // Pagination
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
-    const skip = (pageNumber - 1) * limitNumber;
+    const { pageNumber, limitNumber, skip } = parsePagination(page, limit);
 
-    // Get total count for pagination info
-    const total = await Customer.countDocuments(query);
-
-    // Get customers
-    const customers = await Customer.find(query)
-      .sort({ createdAt: -1 }) // Newest first
-      .skip(skip)
-      .limit(limitNumber);
+    const [total, customers] = await Promise.all([
+      Customer.countDocuments(query),
+      Customer.find(query)
+        .sort({ createdAt: -1 }) // Newest first
+        .skip(skip)
+        .limit(limitNumber),
+    ]);
 
     return response.success(res, "Customers retrieved successfully", {
       customers,
-      pagination: {
-        currentPage: pageNumber,
-        totalPages: Math.ceil(total / limitNumber),
-        totalItems: total,
-        itemsPerPage: limitNumber,
-      },
+      pagination: buildPagination(pageNumber, limitNumber, total),
     });
   } catch (error) {
     console.error("Error in getAllCustomers:", error);
@@ -98,15 +82,15 @@ const createCustomer = async (req, res) => {
     const { fullName, phoneNumber, pantsHeight, waistWidth, pantsLegWidth, type, notes } = req.body;
 
     // Validate required fields
-    if (!fullName) {
+    if (typeof fullName !== "string" || !fullName.trim()) {
       return response.badRequest(res, "Full name is required");
     }
 
-    // Check if customer with same name already exists
-    const existingCustomer = await Customer.findOne({ 
-      fullName: { $regex: new RegExp(`^${fullName.trim()}$`, 'i') } 
+    // Check if customer with same name already exists (escaped, exact match)
+    const existingCustomer = await Customer.findOne({
+      fullName: { $regex: `^${escapeRegex(fullName.trim())}$`, $options: "i" },
     });
-    
+
     if (existingCustomer) {
       return response.conflict(res, "يوجد زبون بنفس الاسم مسبقاً");
     }

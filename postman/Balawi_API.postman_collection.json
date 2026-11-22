@@ -1,13 +1,38 @@
 {
   "info": {
     "name": "Balawi Backend API",
-    "description": "Customer Management API Collection",
+    "description": "Balawi Backend API. All /api/* routes require the `x-api-key` header — set the `apiKey` collection variable to the value of API_KEY from .env.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
       "type": "string"
     }
   ],
@@ -19,10 +44,14 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/",
-          "host": ["{{baseUrl}}"],
-          "path": [""]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": []
         },
-        "description": "Check if the API server is running"
+        "auth": {
+          "type": "noauth"
+        }
       }
     },
     {
@@ -34,36 +63,25 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/customers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"]
-            },
-            "description": "Get all customers without any filters"
-          }
-        },
-        {
-          "name": "Get All Customers (with Pagination)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
               "raw": "{{baseUrl}}/api/customers?page=1&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ],
               "query": [
                 {
                   "key": "page",
-                  "value": "1",
-                  "description": "Page number"
+                  "value": "1"
                 },
                 {
                   "key": "limit",
-                  "value": "10",
-                  "description": "Items per page"
+                  "value": "10"
                 }
               ]
-            },
-            "description": "Get customers with pagination"
+            }
           }
         },
         {
@@ -73,17 +91,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/customers?search=محمد",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ],
               "query": [
                 {
                   "key": "search",
-                  "value": "محمد",
-                  "description": "Search term (partial match on fullName)"
+                  "value": "محمد"
                 }
               ]
-            },
-            "description": "Search customers by name (partial match, case-insensitive)"
+            }
           }
         },
         {
@@ -93,52 +114,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/customers?letter=م",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ],
               "query": [
                 {
                   "key": "letter",
-                  "value": "م",
-                  "description": "Filter by first letter of name"
+                  "value": "م"
                 }
               ]
-            },
-            "description": "Filter customers whose name starts with a specific letter"
-          }
-        },
-        {
-          "name": "Get Customers (Combined Filters)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers?search=أحمد&letter=أ&page=1&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "أحمد",
-                  "description": "Search term"
-                },
-                {
-                  "key": "letter",
-                  "value": "أ",
-                  "description": "First letter filter"
-                },
-                {
-                  "key": "page",
-                  "value": "1",
-                  "description": "Page number"
-                },
-                {
-                  "key": "limit",
-                  "value": "10",
-                  "description": "Items per page"
-                }
-              ]
-            },
-            "description": "Get customers with search, letter filter, and pagination combined"
+            }
           }
         },
         {
@@ -148,17 +137,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/customers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
-                  "value": "CUSTOMER_ID_HERE",
-                  "description": "MongoDB ObjectId of the customer"
+                  "value": ""
                 }
               ]
-            },
-            "description": "Get a single customer by their ID"
+            }
           }
         },
         {
@@ -171,16 +164,20 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"محمد أحمد\",\n  \"phoneNumber\": \"0599123456\",\n  \"height\": 175,\n  \"width\": 80,\n  \"type\": \"regular\",\n  \"notes\": \"عميل جديد\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/api/customers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers"
+              ]
             },
-            "description": "Create a new customer. Required fields: fullName, phoneNumber"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"محمد أحمد\",\n  \"phoneNumber\": \"0599123456\",\n  \"pantsHeight\": 105,\n  \"waistWidth\": 90,\n  \"pantsLegWidth\": 20,\n  \"type\": \"عادي\",\n  \"notes\": \"زبون جديد\"\n}"
+            }
           }
         },
         {
@@ -193,45 +190,20 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"علي حسن\",\n  \"phoneNumber\": \"0598765432\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/api/customers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers"]
-            },
-            "description": "Create a new customer with only required fields"
-          }
-        },
-        {
-          "name": "Update Customer",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"محمد أحمد المحدث\",\n  \"phoneNumber\": \"0599999999\",\n  \"height\": 180,\n  \"width\": 85,\n  \"type\": \"vip\",\n  \"notes\": \"تم تحديث البيانات\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/customers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers", ":id"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "CUSTOMER_ID_HERE",
-                  "description": "MongoDB ObjectId of the customer to update"
-                }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers"
               ]
             },
-            "description": "Update an existing customer. All fields are optional."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"علي حسن\"\n}"
+            }
           }
         },
         {
@@ -244,23 +216,27 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"notes\": \"ملاحظة جديدة فقط\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/api/customers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
-                  "value": "CUSTOMER_ID_HERE",
-                  "description": "MongoDB ObjectId of the customer to update"
+                  "value": ""
                 }
               ]
             },
-            "description": "Update only specific fields of a customer"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waistWidth\": 92,\n  \"notes\": \"تم تحديث المقاس\"\n}"
+            }
           }
         },
         {
@@ -270,17 +246,310 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/customers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customers", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
-                  "value": "CUSTOMER_ID_HERE",
-                  "description": "MongoDB ObjectId of the customer to delete"
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "item": [
+        {
+          "name": "Get All Work Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter Work Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders?status=جاهز&shelfNumber=1&isPaid=false&dateFrom=2026-01-01&dateTo=2026-12-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "جاهز"
+                },
+                {
+                  "key": "shelfNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "isPaid",
+                  "value": "false"
+                },
+                {
+                  "key": "dateFrom",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "dateTo",
+                  "value": "2026-12-31"
                 }
               ]
             },
-            "description": "Delete a customer by ID"
+            "description": "status: غير جاهز | جاهز | تم التسليم. shelfNumber: 1,2,3,4,ارض,طاولة. dateTo (YYYY-MM-DD) includes the whole day."
+          }
+        },
+        {
+          "name": "Search Work Orders by Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders?search=محمد",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "محمد"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                "statistics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Work Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Work Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"محمد أحمد\",\n  \"phoneNumber\": \"0599123456\",\n  \"shelfNumber\": \"1\",\n  \"price\": 50,\n  \"paidAmount\": 20,\n  \"status\": \"غير جاهز\",\n  \"workDescription\": \"تقصير بنطلون\",\n  \"notes\": \"\"\n}"
+            },
+            "description": "isPaid is computed by the server (price > 0 && paidAmount >= price). paidAmount cannot exceed price."
+          }
+        },
+        {
+          "name": "Update Status to Delivered",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"تم التسليم\"\n}"
+            },
+            "description": "Sets deliveryDate automatically."
+          }
+        },
+        {
+          "name": "Mark as Fully Paid",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPaid\": true\n}"
+            },
+            "description": "Without paidAmount, sets paidAmount = price."
+          }
+        },
+        {
+          "name": "Record Partial Payment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidAmount\": 30\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Work Order",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/work-orders/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "work-orders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
           }
         }
       ]

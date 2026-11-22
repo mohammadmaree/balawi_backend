@@ -126,11 +126,14 @@ const updateCustomer = asyncHandler(async (req, res) => {
  * @route   DELETE /api/customers/:id
  */
 const deleteCustomer = asyncHandler(async (req, res) => {
-  const customer = await Customer.findByIdAndDelete(req.params.id);
+  const customer = await Customer.findById(req.params.id);
 
   if (!customer) {
     return response.notFound(res, "الزبون غير موجود");
   }
+
+  // Soft delete: hidden from the app but kept for history/statistics
+  await customer.softDelete();
 
   return response.success(res, "تم حذف الزبون بنجاح", customer);
 });

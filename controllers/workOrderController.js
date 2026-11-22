@@ -239,11 +239,14 @@ const updateWorkOrder = asyncHandler(async (req, res) => {
  * @route   DELETE /api/work-orders/:id
  */
 const deleteWorkOrder = asyncHandler(async (req, res) => {
-  const workOrder = await WorkOrder.findByIdAndDelete(req.params.id);
+  const workOrder = await WorkOrder.findById(req.params.id);
 
   if (!workOrder) {
     return response.notFound(res, "الطلب غير موجود");
   }
+
+  // Soft delete: hidden from the app but kept for history/statistics
+  await workOrder.softDelete();
 
   return response.success(res, "تم حذف الطلب بنجاح", workOrder);
 });

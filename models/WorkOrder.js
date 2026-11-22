@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const { SHELVES, STATUS, STATUSES } = require("../config/constants");
+const softDeletePlugin = require("./plugins/softDelete");
+const historyPlugin = require("./plugins/history");
 
 const workOrderSchema = new mongoose.Schema(
   {
@@ -78,6 +80,31 @@ workOrderSchema.pre("validate", function (next) {
 
   this.isPaid = price > 0 && paid >= price;
   next();
+});
+
+// Keep deleted orders and a full change history (for future statistics)
+workOrderSchema.plugin(softDeletePlugin);
+workOrderSchema.plugin(historyPlugin, {
+  fields: [
+    "customerName",
+    "phoneNumber",
+    "shelfNumber",
+    "price",
+    "paidAmount",
+    "status",
+    "workDescription",
+    "notes",
+  ],
+});
+
+// Internal fields are not sent to the app
+workOrderSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret.history;
+    delete ret.isDeleted;
+    delete ret.deletedAt;
+    return ret;
+  },
 });
 
 // Indexes for filters and sorting

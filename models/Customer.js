@@ -4,7 +4,7 @@ const customerSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
-      required: [true, "Full name is required"],
+      required: [true, "اسم الزبون مطلوب"],
       trim: true,
     },
     phoneNumber: {
@@ -40,7 +40,7 @@ const customerSchema = new mongoose.Schema(
   }
 );
 
-// Index for better search performance on fullName
-customerSchema.index({ fullName: "text" });
+// Index for duplicate phone lookups
+customerSchema.index({ phoneNumber: 1 });
 
 module.exports = mongoose.model("Customer", customerSchema);

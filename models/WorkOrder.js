@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
+const { SHELVES, STATUS, STATUSES } = require("../config/constants");
 
 const workOrderSchema = new mongoose.Schema(
   {
     customerName: {
       type: String,
-      required: [true, "Customer name is required"],
+      required: [true, "اسم الزبون مطلوب"],
       trim: true,
     },
     phoneNumber: {
@@ -14,19 +15,22 @@ const workOrderSchema = new mongoose.Schema(
     },
     shelfNumber: {
       type: String,
-      required: [true, "Shelf number is required"],
+      required: [true, "رقم الرف مطلوب"],
       trim: true,
-      enum: ["1", "2", "3", "4", "ارض", "طاولة"],
+      enum: {
+        values: SHELVES,
+        message: `رقم الرف يجب أن يكون أحد القيم: ${SHELVES.join("، ")}`,
+      },
     },
     price: {
       type: Number,
       default: 0,
-      min: [0, "Price cannot be negative"],
+      min: [0, "السعر لا يمكن أن يكون سالباً"],
     },
     paidAmount: {
       type: Number,
       default: 0,
-      min: [0, "Paid amount cannot be negative"],
+      min: [0, "المبلغ المدفوع لا يمكن أن يكون سالباً"],
     },
     isPaid: {
       type: Boolean,
@@ -34,12 +38,12 @@ const workOrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      required: [true, "Status is required"],
+      required: [true, "الحالة مطلوبة"],
       enum: {
-        values: ["غير جاهز", "جاهز", "تم التسليم"],
-        message: "Status must be either 'غير جاهز', 'جاهز' or 'تم التسليم'",
+        values: STATUSES,
+        message: `الحالة يجب أن تكون أحد القيم: ${STATUSES.join("، ")}`,
       },
-      default: "غير جاهز",
+      default: STATUS.NOT_READY,
     },
     workDescription: {
       type: String,
@@ -76,8 +80,7 @@ workOrderSchema.pre("validate", function (next) {
   next();
 });
 
-// Index for better search performance
-workOrderSchema.index({ customerName: "text" });
+// Indexes for filters and sorting
 workOrderSchema.index({ status: 1 });
 workOrderSchema.index({ shelfNumber: 1 });
 workOrderSchema.index({ createdAt: -1 });

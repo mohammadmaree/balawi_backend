@@ -3,6 +3,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const customerRoutes = require("./routes/customerRoutes");
 const workOrderRoutes = require("./routes/workOrderRoutes");
@@ -27,8 +29,42 @@ app.set("query parser", "simple");
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors()); // Enable CORS for Flutter app
+// Behind a reverse proxy (nginx etc.) set TRUST_PROXY=1 so rate limiting sees real client IPs
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  app.set("trust proxy", Number.isNaN(hops) ? process.env.TRUST_PROXY : hops);
+}
+
+// Security headers
+app.use(helmet());
+
+// CORS: the mobile app doesn't need it. Only browsers (e.g. Flutter web) do,
+// so allow just the origins listed in CORS_ORIGIN (comma-separated).
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : false }));
+
+// Rate limit: max 300 requests per 15 minutes per IP on the API
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    handler: (req, res) =>
+      res.status(429).json({
+        success: false,
+        statusCode: 429,
+        message: "عدد الطلبات كبير جداً، يرجى المحاولة بعد قليل",
+        data: null,
+      }),
+  })
+);
+
+// Body parsing
 app.use(express.json({ limit: "100kb" })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: false, limit: "100kb" })); // Parse URL-encoded bodies
 

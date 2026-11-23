@@ -6,6 +6,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
+const runMigrations = require("./config/migrations");
 const customerRoutes = require("./routes/customerRoutes");
 const workOrderRoutes = require("./routes/workOrderRoutes");
 const { requireApiKey } = require("./middlewares/auth");
@@ -25,9 +26,6 @@ const PORT = process.env.PORT || 3000;
 
 // Parse query strings without nested objects (blocks ?status[$ne]=x)
 app.set("query parser", "simple");
-
-// Connect to MongoDB
-connectDB();
 
 // Behind a reverse proxy (nginx etc.) set TRUST_PROXY=1 so rate limiting sees real client IPs
 if (process.env.TRUST_PROXY) {
@@ -92,7 +90,16 @@ app.get("/", (req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Start server: connect to DB and migrate data before accepting requests
+const start = async () => {
+  await connectDB();
+  await runMigrations();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+};
+
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });

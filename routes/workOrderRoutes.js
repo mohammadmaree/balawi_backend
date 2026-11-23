@@ -7,6 +7,8 @@ const {
   createWorkOrder,
   updateWorkOrder,
   deleteWorkOrder,
+  addPayment,
+  deletePayment,
 } = require("../controllers/workOrderController");
 
 // GET /api/work-orders/statistics - Get statistics (must be before /:id route)
@@ -26,5 +28,11 @@ router.put("/:id", updateWorkOrder);
 
 // DELETE /api/work-orders/:id - Delete work order
 router.delete("/:id", deleteWorkOrder);
+
+// POST /api/work-orders/:id/payments - Add a payment
+router.post("/:id/payments", addPayment);
+
+// DELETE /api/work-orders/:id/payments/:paymentId - Delete a payment
+router.delete("/:id/payments/:paymentId", deletePayment);
 
 module.exports = router;

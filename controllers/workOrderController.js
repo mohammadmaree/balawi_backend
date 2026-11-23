@@ -10,6 +10,13 @@ const {
   parseDate,
 } = require("../utils/query");
 
+// Parse a money amount from the request (number or numeric string), rounded to 2 decimals
+const toAmount = (value) => {
+  const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  return Math.round(n * 100) / 100;
+};
+
 /**
  * @desc    Get all work orders with filters, search, and pagination
  * @route   GET /api/work-orders
@@ -31,8 +38,13 @@ const getAllWorkOrders = asyncHandler(async (req, res) => {
 
   const query = {};
 
+  // Search by customer name, or by order number ("1023" or "#1023")
   if (search) {
-    query.customerName = { $regex: escapeRegex(search), $options: "i" };
+    const nameMatch = { customerName: { $regex: escapeRegex(search), $options: "i" } };
+    const numberMatch = search.match(/^#?(\d+)$/);
+    query.$or = numberMatch
+      ? [nameMatch, { orderNumber: Number(numberMatch[1]) }]
+      : [nameMatch];
   }
   if (status) {
     query.status = status;
@@ -160,12 +172,15 @@ const createWorkOrder = asyncHandler(async (req, res) => {
     return response.badRequest(res, "الحالة مطلوبة");
   }
 
-  // isPaid is derived from amounts in the model.
-  // Backward compatibility: isPaid=true without paidAmount means fully paid.
+  // Amount paid on creation becomes the first payment.
+  // isPaid=true without paidAmount means fully paid.
   const finalPrice = price || 0;
-  let finalPaid = paidAmount || 0;
+  let firstPayment = paidAmount === undefined ? 0 : toAmount(paidAmount);
+  if (firstPayment === null) {
+    return response.badRequest(res, "المبلغ المدفوع غير صالح");
+  }
   if (isPaid === true && paidAmount === undefined) {
-    finalPaid = finalPrice;
+    firstPayment = Number(finalPrice) || 0;
   }
 
   const workOrder = await WorkOrder.create({
@@ -173,7 +188,7 @@ const createWorkOrder = asyncHandler(async (req, res) => {
     phoneNumber,
     shelfNumber,
     price: finalPrice,
-    paidAmount: finalPaid,
+    payments: firstPayment > 0 ? [{ amount: firstPayment }] : [],
     status,
     workDescription: workDescription || "",
     notes: notes || "",
@@ -209,16 +224,28 @@ const updateWorkOrder = asyncHandler(async (req, res) => {
   if (phoneNumber !== undefined) workOrder.phoneNumber = phoneNumber;
   if (shelfNumber !== undefined) workOrder.shelfNumber = shelfNumber;
   if (price !== undefined) workOrder.price = price;
-  if (paidAmount !== undefined) workOrder.paidAmount = paidAmount;
   if (workDescription !== undefined) workOrder.workDescription = workDescription;
   if (notes !== undefined) workOrder.notes = notes;
 
-  // isPaid is derived from amounts in the model.
-  // Backward compatibility when only isPaid is sent (toggle in the app):
-  if (paidAmount === undefined && isPaid === true) {
-    workOrder.paidAmount = workOrder.price;
-  } else if (paidAmount === undefined && isPaid === false && workOrder.isPaid) {
-    workOrder.paidAmount = 0;
+  // Backward compatibility: clients that send a total paidAmount (or only isPaid)
+  // instead of using /payments. The difference is recorded as a payment
+  // (or a negative correction), so the payments list always matches the total.
+  let targetPaid = null;
+  if (paidAmount !== undefined) {
+    targetPaid = toAmount(paidAmount);
+    if (targetPaid === null) {
+      return response.badRequest(res, "المبلغ المدفوع غير صالح");
+    }
+  } else if (isPaid === true) {
+    targetPaid = Number(workOrder.price) || 0;
+  } else if (isPaid === false && workOrder.isPaid) {
+    targetPaid = 0;
+  }
+  if (targetPaid !== null) {
+    const diff = Math.round((targetPaid - (workOrder.paidAmount || 0)) * 100) / 100;
+    if (diff !== 0) {
+      workOrder.payments.push({ amount: diff, note: diff < 0 ? "تصحيح المبلغ المدفوع" : "" });
+    }
   }
 
   // Set delivery date the first time the order is delivered
@@ -251,6 +278,66 @@ const deleteWorkOrder = asyncHandler(async (req, res) => {
   return response.success(res, "تم حذف الطلب بنجاح", workOrder);
 });
 
+/**
+ * @desc    Add a payment to a work order
+ * @route   POST /api/work-orders/:id/payments
+ * @body    amount (required, > 0), note (optional), paidAt (optional date, default now)
+ * @returns The updated work order
+ */
+const addPayment = asyncHandler(async (req, res) => {
+  const amount = toAmount(req.body.amount);
+  if (amount === null || amount <= 0) {
+    return response.badRequest(res, "مبلغ الدفعة يجب أن يكون رقماً أكبر من صفر");
+  }
+
+  let paidAt = new Date();
+  if (req.body.paidAt !== undefined) {
+    paidAt = parseDate(req.body.paidAt);
+    if (!paidAt) {
+      return response.badRequest(res, "تاريخ الدفعة غير صالح");
+    }
+  }
+
+  const note = typeof req.body.note === "string" ? req.body.note : "";
+
+  const workOrder = await WorkOrder.findById(req.params.id);
+  if (!workOrder) {
+    return response.notFound(res, "الطلب غير موجود");
+  }
+
+  const remaining = (workOrder.price || 0) - (workOrder.paidAmount || 0);
+  if (amount > remaining) {
+    return response.badRequest(res, `المبلغ أكبر من المتبقي (${remaining})`);
+  }
+
+  workOrder.payments.push({ amount, paidAt, note });
+  const updatedWorkOrder = await workOrder.save();
+
+  return response.created(res, "تم إضافة الدفعة بنجاح", updatedWorkOrder);
+});
+
+/**
+ * @desc    Delete a payment from a work order (e.g. entered by mistake)
+ * @route   DELETE /api/work-orders/:id/payments/:paymentId
+ * @returns The updated work order
+ */
+const deletePayment = asyncHandler(async (req, res) => {
+  const workOrder = await WorkOrder.findById(req.params.id);
+  if (!workOrder) {
+    return response.notFound(res, "الطلب غير موجود");
+  }
+
+  const payment = workOrder.payments.id(req.params.paymentId);
+  if (!payment) {
+    return response.notFound(res, "الدفعة غير موجودة");
+  }
+
+  payment.deleteOne();
+  const updatedWorkOrder = await workOrder.save();
+
+  return response.success(res, "تم حذف الدفعة بنجاح", updatedWorkOrder);
+});
+
 module.exports = {
   getAllWorkOrders,
   getStatistics,
@@ -258,4 +345,6 @@ module.exports = {
   createWorkOrder,
   updateWorkOrder,
   deleteWorkOrder,
+  addPayment,
+  deletePayment,
 };
